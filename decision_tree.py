@@ -1,5 +1,6 @@
 # This is a basic decision tree
 from sklearn import datasets
+import numpy as np
 
 class Node:
     def __init__(self, left=None, right=None, curr_depth=None):
@@ -31,6 +32,23 @@ class DecisionTree:
         self.root = Node()
         self.fitted_depth = 0
 
+    def __str__(self):
+        if self.fitted_depth == 0:
+            return 'This tree is still a sapling. There\'s nothing to show'
+        else:
+            s = f'Tree with max fitted depth of {self.fitted_depth}:\n'
+            s += 'root\n'
+            stack = ['left', 'right']
+            while stack:
+                name = stack.pop()
+                curr_depth = name.count('.') + 2
+                s += f'{" "*curr_depth}{name}\n'
+                if attrgetter(self.root,f'{name}.left'):
+                    stack.append(f'{name}.left')
+                if attrgetter(self.root,f'{name}.right'):
+                    stack.append(f'{name}.right')
+            return s
+
     def fit(self):
         # Check if it makes sense to grow a tree and if so then grow it
         attrsetter(self.root, 'left', Node(curr_depth=1))
@@ -49,31 +67,18 @@ class DecisionTree:
                     stack.append(f'{name}.left')
                     stack.append(f'{name}.right')
 
-    def pretty_print(self):
-        if self.fitted_depth == 0:
-            return 'This tree is still a sapling. There\'s nothing to show'
-        else:
-            s = f'Tree with max fitted depth of {self.fitted_depth}:\n'
-            s += 'root\n'
-            stack = ['left', 'right']
-            while stack:
-                name = stack.pop()
-                curr_depth = name.count('.') + 2
-                s += f'{" "*curr_depth}{name}\n'
-                if attrgetter(self.root,f'{name}.left'):
-                    stack.append(f'{name}.left')
-                if attrgetter(self.root,f'{name}.right'):
-                    stack.append(f'{name}.right')
-            return s
+    def entropy(self, x):
+        counts = np.unique(x, return_counts=True)[1]
+        norm_counts = counts / counts.sum()
+        return -(norm_counts * np.log(norm_counts)).sum()
 
-    def __str__(self):
-        return self.pretty_print()
-
+    def information_gain(self, parent, left_child, right_child):
+        
 
 if __name__ == '__main__':
     iris = datasets.load_iris()
     tree = DecisionTree(data=iris.data, target=iris.target, max_depth=3)
-
+    abort
 
     # tree = DecisionTree(max_depth=1)
     # print(tree.fitted_depth)
