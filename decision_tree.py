@@ -1,12 +1,53 @@
 # This is a basic decision tree
+from __future__ import annotations
+from typing import Any, NoReturn, Type
 from sklearn import datasets
 import numpy as np
 
-# TODO: Turn prints into logs
+# Q: Shouldn't attrgetter and attrsetter be methods in DecisionTree?
+
+def attrgetter(obj: object, name: str, value: Any = None) -> Any:
+    """
+    Returns value from nested objects/chained attributes (basically getattr() on steroids)
+    :param obj: Primary object
+    :param name: Path to the attribute (dot separated)
+    :param value: Default value returned if a function fails to find the requested attribute value
+    :return:
+    """
+    for attribute in name.split('.'):
+        obj = getattr(obj, attribute, value)
+    return obj
+
+
+def attrsetter(obj: object, name: str, value: Any) -> NoReturn:
+    """
+    Sets the value of the attribute of a (nested) object (basically setattr() on steroids)
+    :param obj: Primary object
+    :param name: Path to the attribute (dot separated)
+    :param value: Value to be set
+    """
+    pre, _, post = name.rpartition('.')
+    setattr(attrgetter(obj, pre) if pre else obj, post, value)
+
 
 class Node:
-    def __init__(self, data=None, target=None, left=None, right=None,
-                 curr_depth=None, variable=None, threshold=None, leaf_value=None):
+    """
+    Building block of each tree
+    May contain children nodes (left and right) or be a final node (called "leaf")
+    """
+    def __init__(self, data: np.ndarray = None, target: np.ndarray = None, left: Node = None, right: Node = None,
+                 curr_depth: int = None, variable: int = None, threshold: float = None, leaf_value: np.ndarray = None) -> NoReturn:
+        """
+        :param data: NxM (where N denotes #observations and M denotes #variables) numpy array containing independent variables
+        :param target: numpy vector containing dependent variable
+        :param left: (if exists) node containing observations smaller than a given threshold at a given variable
+        :param right: (if exists) node containing observations bigger than a given threshold at a given variable
+        :param curr_depth: number of parent nodes directly above the current node
+        :param variable: variable used to split data
+        :param threshold: threshold at which data was split
+        :param leaf_value: (if a node is a leaf, i.e. a final node with no children) the most frequent value(s) of a
+                           dependent variable in a given node
+        """
         self.data = data
         self.target = target
         self.left = left
@@ -19,19 +60,17 @@ class Node:
     def __str__(self):
         return f'This node is at level: {self.curr_depth}'
 
-def attrgetter(object, name, value=None):
-    for element in name.split('.'):
-        object = getattr(object, element, value)
-    return object
-
-
-def attrsetter(object, name, value):
-    pre, inter, suf = name.rpartition('.')
-    return setattr(attrgetter(object, pre) if pre else object, suf, value)
 
 class DecisionTree:
-
-    def __init__(self, data=None, target=None, max_depth=3):
+    """
+    Classification decision tree
+    """
+    def __init__(self, data: np.ndarray = None, target: np.ndarray = None, max_depth: int = 3):
+        """
+        :param data: NxM (where N denotes #observations and M denotes #variables) numpy array containing independent variables
+        :param target: numpy vector containing dependent variable
+        :param max_depth: maximum depth of a tree
+        """
         self.data = data
         self.target = target
         self.max_depth = max_depth
@@ -53,14 +92,16 @@ class DecisionTree:
                          f"{attrgetter(self.root, f'{name}.threshold')} (" \
                          f"{np.unique(attrgetter(self.root, f'{name}.target'), return_counts=True)[1]})\n"
                 else:
-                    s += f"{' ' * curr_depth}{name} ({np.unique(attrgetter(self.root, f'{name}.target'), return_counts=True)[1]} and the leaf value is {attrgetter(self.root, f'{name}.leaf_value')})\n"
+                    s += f"{' ' * curr_depth}{name} ({np.unique(attrgetter(self.root, f'{name}.target'), return_counts=True)[1]}" \
+                         f" and the leaf value is {attrgetter(self.root, f'{name}.leaf_value')})\n"
                 if attrgetter(self.root,f'{name}.left'):
                     stack.append(f'{name}.left')
                 if attrgetter(self.root,f'{name}.right'):
                     stack.append(f'{name}.right')
             return s
 
-    def entropy(self, x):
+    @staticmethod
+    def entropy(x: np.ndarray) -> float:
         if x.size == 0:
             return 0
         else:
@@ -68,11 +109,12 @@ class DecisionTree:
             norm_counts = counts / counts.sum()
             return -(norm_counts * np.log(norm_counts)).sum()
 
-    def information_gain(self, parent, left_child, right_child):
-        return self.entropy(parent) - (left_child.size / parent.size * self.entropy(left_child) + \
+    def information_gain(self, parent: np.ndarray, left_child: np.ndarray, right_child: np.ndarray) -> float:
+        return self.entropy(parent) - (left_child.size / parent.size * self.entropy(left_child) +
                                        right_child.size / parent.size * self.entropy(right_child))
 
-    def moving_average(self, x, w):
+    @staticmethod
+    def moving_average(x: np.ndarray, w: int) -> np.ndarray:
         return np.convolve(x, np.ones(w), 'valid') / w
 
     def find_best_split(self, data, target):
