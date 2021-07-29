@@ -165,12 +165,6 @@ class DecisionTree:
         """
         Grows a binary classification tree using greedy approach and information gain criterion
         """
-        # TODO: Check if passed slices are copied by value or by reference
-        # TODO: Exception handling:
-        #  (1) tree was already fitted
-        #  (2) wrong data type
-        #  (3) not enough training examples
-        #  (4) data contains only one class
         best_split = self.find_best_split(self.data, self.target)
         left_indices = self.data[:,best_split['variable']] < best_split['threshold']
         self.root.variable = best_split['variable']
