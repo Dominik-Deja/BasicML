@@ -1,0 +1,12 @@
+from decision_tree import DecisionTree
+from sklearn import datasets
+
+def main():
+    iris = datasets.load_iris()
+    tree = DecisionTree(data=iris.data, target=iris.target, max_depth=6)
+    tree.fit()
+    print(tree)
+    print(tree.get_prediction(iris.data[0, :]))
+
+if __name__ == '__main__':
+    main()
