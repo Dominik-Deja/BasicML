@@ -1,16 +1,13 @@
 # This is a basic decision tree
 from __future__ import annotations
 from typing import Any, NoReturn, Type
-from sklearn import datasets
 import numpy as np
-
-# Q: Shouldn't attrgetter and attrsetter be methods in DecisionTree?
 
 def attrgetter(obj: object, name: str, value: Any = None) -> Any:
     """
     Returns value from nested objects/chained attributes (basically getattr() on steroids)
     :param obj: Primary object
-    :param name: Path to the attribute (dot separated)
+    :param name: Path to an attribute (dot separated)
     :param value: Default value returned if a function fails to find the requested attribute value
     :return:
     """
@@ -21,9 +18,9 @@ def attrgetter(obj: object, name: str, value: Any = None) -> Any:
 
 def attrsetter(obj: object, name: str, value: Any) -> NoReturn:
     """
-    Sets the value of the attribute of a (nested) object (basically setattr() on steroids)
+    Sets the value of an attribute of a (nested) object (basically setattr() on steroids)
     :param obj: Primary object
-    :param name: Path to the attribute (dot separated)
+    :param name: Path to an attribute (dot separated)
     :param value: Value to be set
     """
     pre, _, post = name.rpartition('.')
@@ -64,6 +61,8 @@ class Node:
 class DecisionTree:
     """
     Classification decision tree
+    Data must be provided on instance creation, then fit() can be used to fit the tree to the data and
+    predict() to predict classes of the new data samples
     """
     def __init__(self, data: np.ndarray = None, target: np.ndarray = None, max_depth: int = 3):
         """
@@ -102,6 +101,11 @@ class DecisionTree:
 
     @staticmethod
     def entropy(x: np.ndarray) -> float:
+        """
+        Entropy, as defined in information theory (https://en.wikipedia.org/wiki/Entropy_(information_theory))
+        :param x: vector of real values
+        :return: entropy of a vector x
+        """
         if x.size == 0:
             return 0
         else:
@@ -109,15 +113,35 @@ class DecisionTree:
             norm_counts = counts / counts.sum()
             return -(norm_counts * np.log(norm_counts)).sum()
 
+
     def information_gain(self, parent: np.ndarray, left_child: np.ndarray, right_child: np.ndarray) -> float:
+        """
+        Information gain, as defined on Wikipedia (https://en.wikipedia.org/wiki/Information_gain_in_decision_trees)
+        :param parent: float vector
+        :param left_child: float vector
+        :param right_child: float vector
+        :return: float denoting information gain for a given split (parent into its children)
+        """
         return self.entropy(parent) - (left_child.size / parent.size * self.entropy(left_child) +
                                        right_child.size / parent.size * self.entropy(right_child))
 
     @staticmethod
     def moving_average(x: np.ndarray, w: int) -> np.ndarray:
+        """
+        Moving average of vector x with w-wide window
+        :param x: float vector
+        :param w: width of the moving window
+        :return: float vector with averaged values
+        """
         return np.convolve(x, np.ones(w), 'valid') / w
 
-    def find_best_split(self, data, target):
+    def find_best_split(self, data: np.ndarray, target: np.ndarray) -> dict:
+        """
+        Searches for the best split on a given data with respect to the dependent variable (using information gain criterion)
+        :param data: NxM (where N denotes #observations and M denotes #variables) numpy array containing independent variables
+        :param target: numpy vector containing dependent variable
+        :return: dictionary with best split variable, threshold and gain
+        """
         best_split = {'variable' : None,
                       'threshold': None,
                       'gain': -1}
@@ -136,46 +160,11 @@ class DecisionTree:
                     best_split['gain'] = gain
         print(best_split, np.unique(target, return_counts=True)[1])
         return best_split
-        ## This approach results in errors as it iterates through identical values, e.g. [1,1,2,2,2,3,4],
-        ## gets different gain for identical values (as it increases/decreases step by step)
-        ## and sets unreliable thresholds
-        # for variable in range(data.shape[1]):
-        #     indices = data[:, variable].argsort()
-        #     target_sorted = target[indices]
-        #     #data_sorted = data[indices,variable]
-        #     for i, index in enumerate(indices):
-        #         print(f'Information gain for variable {variable} at value {data[index, variable]} equals \
-        #                {self.information_gain(target_sorted, target_sorted[:i], target_sorted[i:])}')
-        #         gain = self.information_gain(target_sorted, target_sorted[:i], target_sorted[i:])
-        #         if gain > best_split['gain']:
-        #             best_split['variable'] = variable
-        #             best_split['threshold'] = data[index,variable]
-        #             best_split['gain'] = gain
-        # print(best_split, np.unique(target, return_counts=True)[1])
-        # return best_split
-        #
-        ## Pairplot
-        # data_frame = pd.DataFrame(data=data)
-        # data_frame['target'] = target
-        # plot = sns.pairplot(data_frame, hue='target', corner=True)
-        ## Just a sanity check plot for iris
-        # fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4)
-        # fig.suptitle('Horizontally stacked subplots')
-        # ax1.scatter(data[:, best_split['variable']], data[:, 0], c=target)
-        # if best_split['variable'] == 0:
-        #     plt.axvline(x=best_split['threshold'], linestyle='--')
-        # ax2.scatter(data[:, best_split['variable']], data[:, 1], c=target)
-        # if best_split['variable'] == 1:
-        #     plt.axvline(x=best_split['threshold'], linestyle='--')
-        # ax3.scatter(data[:, best_split['variable']], data[:, 2], c=target)
-        # if best_split['variable'] == 2:
-        #     plt.axvline(x=best_split['threshold'], linestyle='--')
-        # ax4.scatter(data[:, best_split['variable']], data[:, 3], c=target)
-        # if best_split['variable'] == 3:
-        #     plt.axvline(x=best_split['threshold'], linestyle='--')
-        # plt.show()
 
-    def fit(self):
+    def fit(self) -> NoReturn:
+        """
+        Grows a binary classification tree using greedy approach and information gain criterion
+        """
         # TODO: Check if passed slices are copied by value or by reference
         # TODO: Exception handling:
         #  (1) tree was already fitted
@@ -219,7 +208,13 @@ class DecisionTree:
                 target_values, target_counts = np.unique(target, return_counts=True)
                 attrsetter(self.root, f'{name}.leaf_value', target_values[target_counts == target_counts.max()])
 
-    def get_prediction(self, x, name=''):
+    def get_prediction(self, x: np.ndarray, name: str = '') -> np.ndarray:
+        """
+        Returns predicted class(es) for a given observation (numpy vector)
+        :param x: float vector
+        :param name: path to an attribute (dot separated)
+        :return: vector with predicted class(es)
+        """
         if attrgetter(self.root, f'{name}.leaf_value') is not None:
             return attrgetter(self.root, f'{name}.leaf_value')[0]
         if name == '':   # TODO: This one is ugly
@@ -233,52 +228,13 @@ class DecisionTree:
             else:
                 return self.get_prediction(x, name=f'{name}.right')
 
-    def predict(self, new_data):
-        return np.array([self.get_prediction(x) for x in new_data])
-
-
-if __name__ == '__main__':
-    iris = datasets.load_iris()
-    tree = DecisionTree(data=iris.data, target=iris.target, max_depth=6)
-    tree.fit()
-    print(tree)
-    print(tree.get_prediction(iris.data[0,:]))
-    x = tree.predict(iris.data)
-    print(np.unique(x, return_counts=True))
-
-    # tree.find_best_split(iris.data, iris.target)
-    #
-    # print(tree.information_gain(np.array([0,0,0,1,1,1]),
-    #                             np.array([0,0,0,1,1,1]),
-    #                             np.array([0,0,0,1,1,1])))
-    # print(tree.information_gain(np.array([0,0,0,1,1,1]),
-    #                             np.array([0,0,0]),
-    #                             np.array([1,1,1])))
-    # print(tree.information_gain(np.array([0,0,0,1,1,1]),
-    #                             np.array([0,1,0,1]),
-    #                             np.array([0,1])))
-    # tree = DecisionTree(max_depth=1)
-    # print(tree.fitted_depth)
-    # tree.fit()
-    # print(tree.fitted_depth)
-    # tree = DecisionTree(max_depth=3)
-    # print(tree)
-    # tree.fit()
-    # print(tree)
-    # print(tree.root.left)
-    # print(tree.root.left.left)
-    # print(tree.root.left.left.left)
-    # print(tree.root.left.left.left.left)
-
-    # tree = RecursiveTree()
-    # tree.fit()
-    # print(tree.root.left.left)
-    # #print(attrgetter(tree, 'root.left.right'))
-    # #attrsetter(tree, 'root.left.left.leftish', 999)
-    # tree._attrsetter(tree, 'root.left.left.leftish', 999)
-    # print(tree.root.left.left.leftish)
-
-
+    def predict(self, new_data: np.ndarray) -> list:
+        """
+        Returns predicted classes for given observations
+        :param new_data: NxM (where N denotes #observations and M denotes #variables) numpy array
+        :return: list with predicted classes
+        """
+        return [self.get_prediction(x) for x in new_data]
 
     # def fit(self):  # Would be great, but not working due to the lack of pointers in Python
     #     stack = [self.root]
