@@ -5,7 +5,7 @@ import numpy as np
 
 def attrgetter(obj: object, name: str, value: Any = None) -> Any:
     """
-    Returns value from nested objects/chained attributes (basically getattr() on steroids)
+    Returns value from nested objects/chained attributes (basically, getattr() on steroids)
     :param obj: Primary object
     :param name: Path to an attribute (dot separated)
     :param value: Default value returned if a function fails to find the requested attribute value
@@ -18,7 +18,7 @@ def attrgetter(obj: object, name: str, value: Any = None) -> Any:
 
 def attrsetter(obj: object, name: str, value: Any) -> NoReturn:
     """
-    Sets the value of an attribute of a (nested) object (basically setattr() on steroids)
+    Sets the value of an attribute of a (nested) object (basically, setattr() on steroids)
     :param obj: Primary object
     :param name: Path to an attribute (dot separated)
     :param value: Value to be set
