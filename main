@@ -1,12 +1,14 @@
 from decision_tree import DecisionTree
 from sklearn import datasets
+from sklearn.model_selection import train_test_split
 
 def main():
     iris = datasets.load_iris()
-    tree = DecisionTree(data=iris.data, target=iris.target, max_depth=6)
-    tree.fit()
+    X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size=0.2, random_state=1)
+    tree = DecisionTree(max_depth=6)
+    tree.fit(X_train, y_train)
     print(tree)
-    print(tree.get_prediction(iris.data[0, :]))
+    print(f'Rough test: Prediciton={tree.get_prediction(X_test[0, :])}, true value={y_test[0]}')
 
 if __name__ == '__main__':
     main()
