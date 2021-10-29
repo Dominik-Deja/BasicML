@@ -64,19 +64,17 @@ class DecisionTree:
     Data must be provided on instance creation, then fit() can be used to fit the tree to the data and
     predict() to predict classes of the new data samples
     """
-    def __init__(self, data: np.ndarray = None, target: np.ndarray = None, max_depth: int = 3):
+    def __init__(self, max_depth: int = 3) -> NoReturn:
         """
         :param data: NxM (where N denotes #observations and M denotes #variables) numpy array containing independent variables
         :param target: numpy vector containing dependent variable
         :param max_depth: maximum depth of a tree
         """
-        self.data = data
-        self.target = target
         self.max_depth = max_depth
         self.root = Node()
         self.fitted_depth = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.fitted_depth == 0:
             return 'This tree is still a sapling. There\'s nothing to show'
         else:
@@ -161,19 +159,19 @@ class DecisionTree:
         print(best_split, np.unique(target, return_counts=True)[1])
         return best_split
 
-    def fit(self) -> NoReturn:
+    def fit(self, data: np.ndarray = None, target: np.ndarray = None) -> NoReturn:
         """
         Grows a binary classification tree using greedy approach and information gain criterion
         """
-        best_split = self.find_best_split(self.data, self.target)
-        left_indices = self.data[:,best_split['variable']] < best_split['threshold']
+        best_split = self.find_best_split(data, target)
+        left_indices = data[:,best_split['variable']] < best_split['threshold']
         self.root.variable = best_split['variable']
         self.root.threshold = best_split['threshold']
-        attrsetter(self.root, 'left', Node(data=self.data[left_indices,:],
-                                           target=self.target[left_indices],
+        attrsetter(self.root, 'left', Node(data=data[left_indices,:],
+                                           target=target[left_indices],
                                            curr_depth=1))
-        attrsetter(self.root, 'right', Node(data=self.data[np.invert(left_indices),:],
-                                            target=self.target[np.invert(left_indices)],
+        attrsetter(self.root, 'right', Node(data=data[np.invert(left_indices),:],
+                                            target=target[np.invert(left_indices)],
                                             curr_depth=1))
         self.fitted_depth = 1
         stack = ['left', 'right']
