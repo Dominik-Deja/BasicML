@@ -1,7 +1,11 @@
-# This is a basic decision tree
+# Author: Dominik Deja
+# First created: 20.06.2021
+# This is a stack-based implementation of a decision tree
+
 from __future__ import annotations
-from typing import Any, NoReturn, Type
+from typing import Any, NoReturn
 import numpy as np
+
 
 def attrgetter(obj: object, name: str, value: Any = None) -> Any:
     """
@@ -54,7 +58,7 @@ class Node:
         self.threshold = threshold
         self.leaf_value = leaf_value
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'This node is at level: {self.curr_depth}'
 
 
@@ -66,8 +70,6 @@ class DecisionTree:
     """
     def __init__(self, max_depth: int = 3) -> NoReturn:
         """
-        :param data: NxM (where N denotes #observations and M denotes #variables) numpy array containing independent variables
-        :param target: numpy vector containing dependent variable
         :param max_depth: maximum depth of a tree
         """
         self.max_depth = max_depth
@@ -91,9 +93,9 @@ class DecisionTree:
                 else:
                     s += f"{' ' * curr_depth}{name} ({np.unique(attrgetter(self.root, f'{name}.target'), return_counts=True)[1]}" \
                          f" and the leaf value is {attrgetter(self.root, f'{name}.leaf_value')})\n"
-                if attrgetter(self.root,f'{name}.left'):
+                if attrgetter(self.root, f'{name}.left'):
                     stack.append(f'{name}.left')
-                if attrgetter(self.root,f'{name}.right'):
+                if attrgetter(self.root, f'{name}.right'):
                     stack.append(f'{name}.right')
             return s
 
@@ -110,7 +112,6 @@ class DecisionTree:
             counts = np.unique(x, return_counts=True)[1]
             norm_counts = counts / counts.sum()
             return -(norm_counts * np.log(norm_counts)).sum()
-
 
     def information_gain(self, parent: np.ndarray, left_child: np.ndarray, right_child: np.ndarray) -> float:
         """
@@ -140,7 +141,7 @@ class DecisionTree:
         :param target: numpy vector containing dependent variable
         :return: dictionary with best split variable, threshold and gain
         """
-        best_split = {'variable' : None,
+        best_split = {'variable': None,
                       'threshold': None,
                       'gain': -1}
         if np.unique(target).size == 1:
@@ -150,27 +151,28 @@ class DecisionTree:
             # Threshold is set to be a point in between two values (in a monotonically increasing set of unique values)
             thresholds = self.moving_average(data[indices, variable], 2)
             for threshold in thresholds:
-                left_indices = data[:, variable] < threshold # TODO: Clean it, if possible, as it adds unnecessary complexity
+                left_indices = data[:, variable] < threshold  # TODO: Clean it, if possible, as it adds unnecessary complexity
                 gain = self.information_gain(target, target[left_indices], target[np.invert(left_indices)])
                 if gain > best_split['gain']:
                     best_split['variable'] = variable
                     best_split['threshold'] = threshold
                     best_split['gain'] = gain
-        print(best_split, np.unique(target, return_counts=True)[1])
         return best_split
 
     def fit(self, data: np.ndarray = None, target: np.ndarray = None) -> NoReturn:
         """
         Grows a binary classification tree using greedy approach and information gain criterion
+        :param data: NxM (where N denotes #observations and M denotes #variables) numpy array containing independent variables
+        :param target: numpy vector containing dependent variable
         """
         best_split = self.find_best_split(data, target)
-        left_indices = data[:,best_split['variable']] < best_split['threshold']
+        left_indices = data[:, best_split['variable']] < best_split['threshold']
         self.root.variable = best_split['variable']
         self.root.threshold = best_split['threshold']
-        attrsetter(self.root, 'left', Node(data=data[left_indices,:],
+        attrsetter(self.root, 'left', Node(data=data[left_indices, :],
                                            target=target[left_indices],
                                            curr_depth=1))
-        attrsetter(self.root, 'right', Node(data=data[np.invert(left_indices),:],
+        attrsetter(self.root, 'right', Node(data=data[np.invert(left_indices), :],
                                             target=target[np.invert(left_indices)],
                                             curr_depth=1))
         self.fitted_depth = 1
@@ -228,7 +230,7 @@ class DecisionTree:
         """
         return [self.get_prediction(x) for x in new_data]
 
-    # def fit(self):  # Would be great, but not working due to the lack of pointers in Python
+    # def fit(self):  # Would be great, but not working due to the lack of explicit pointers in Python
     #     stack = [self.root]
     #     depth, max_depth = 0, 3
     #     while stack:
