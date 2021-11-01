@@ -211,7 +211,7 @@ class DecisionTree:
         """
         if attrgetter(self.root, f'{name}.leaf_value') is not None:
             return attrgetter(self.root, f'{name}.leaf_value')[0]
-        if name == '':   # TODO: This one is ugly
+        if name == '':   # TODO: Check if it's possible to get rid of default case
             if x[attrgetter(self.root, f'variable')] < attrgetter(self.root, f'threshold'):
                 return self.get_prediction(x, name='left')
             else:
